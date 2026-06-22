@@ -1,0 +1,1033 @@
+import React, { useEffect, useState, useCallback, useRef } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ActivityIndicator,
+  FlatList,
+  TouchableOpacity,
+  TextInput,
+  Platform,
+  Image,
+  Modal,
+  Keyboard
+} from "react-native";
+import Toast from "react-native-toast-message";
+import { useSelector } from "react-redux";
+import { AuthFetch, AuthPost } from "../../auth/auth";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+// NEW: for PDF and saving to Downloads
+import RNHTMLtoPDF from "react-native-html-to-pdf";
+
+// Import responsive utilities
+import {
+  responsiveWidth,
+  responsiveHeight,
+  responsiveText,
+  moderateScale,
+  isTablet,
+  SPACING,
+  FONT_SIZE,
+  LAYOUT,
+  SAFE_AREA,
+} from '../../utility/responsive';
+import RNFS from "react-native-fs";
+
+type RootState = any;
+
+type TestItem = {
+  _id: string;
+  testName: string;
+  price?: number | null;
+  status: "pending" | "completed" | "cancelled" | "in_progress" | string;
+  createdAt?: string;
+  updatedAt?: string;
+  labTestID?: string;
+};
+
+type PatientRow = {
+  patientId: string;
+  patientName: string;
+  DOB?: string; // dd-mm-yyyy
+  gender?: string;
+  mobile?: string;
+  tests: TestItem[];
+  labData?: Record<string, any>;
+  addressId?: string;
+};
+
+type Props = {
+  status: "pending" | "completed";
+  updateCount: () => void;
+  searchValue: string;
+};
+
+const PAGE_SIZE_DEFAULT = 5;
+
+export default function LabPatientManagement({ status, updateCount, searchValue }: Props) {
+  const user = useSelector((state: any) => state.currentUser);
+  const doctorId = user?.role === "doctor" ? user?.userId : user?.createdBy;
+
+  const [patients, setPatients] = useState<PatientRow[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState<Record<string, boolean>>({});
+  const [paying, setPaying] = useState<Record<string, boolean>>({});
+  const [editable, setEditable] = useState<string[]>([]);
+  const [isPaymentDone, setIsPaymentDone] = useState<Record<string, boolean>>({});
+  const [page, setPage] = useState(1);
+  const [totalPatients, setTotalPatients] = useState(0);
+  const [pageSize, setPageSize] = useState(PAGE_SIZE_DEFAULT);
+  const [qrModalVisible, setQrModalVisible] = useState(false);
+  const [qrCodeImage, setQrCodeImage] = useState<string | null>(null);
+  const [currentPatientForQr, setCurrentPatientForQr] = useState<string | null>(null);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<Record<string, "cash" | "upi" | null>>({});
+  const [showUpiQr, setShowUpiQr] = useState<Record<string, boolean>>({});
+  const [qrLoading, setQrLoading] = useState(false);
+
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const listRef = useRef<FlatList<any>>(null);
+
+  const fetchPatients = useCallback(
+    async (pg = 1, limit = pageSize) => {
+      try {
+        const token = await AsyncStorage.getItem("authToken");
+        setLoading(true);
+        const res = await AuthFetch(
+          `lab/getAllTestsPatientsByDoctorID/${doctorId}?searchValue=${searchValue || ""}&status=${status}&page=${pg}&limit=${limit}`,
+          token
+        );
+
+        if (res?.data?.status === "success" && res?.data?.data) {
+          let data: PatientRow[] = res?.data?.data?.patients || [];
+
+          // Client-side status guard (same logic as web)
+          data = data.filter((p) => {
+            if (status === "completed") {
+              return p.tests.every((t) => t.status === "completed");
+            } else {
+              return p.tests.some((t) => t.status === "pending");
+            }
+          });
+
+          if (pg === 1) setPatients(data);
+          else setPatients((prev) => [...prev, ...data]);
+
+          setTotalPatients(res?.data?.data?.pagination?.totalPatients || 0);
+          setPage(pg);
+
+          const payState: Record<string, boolean> = {};
+          data.forEach((p) => {
+            payState[p.patientId] = !p.tests.some((t) => t.status === "pending");
+          });
+          setIsPaymentDone((prev) => ({ ...prev, ...payState }));
+          const paymentMethods: Record<string, "cash" | "upi" | null> = {};
+          data.forEach((p) => {
+            paymentMethods[p.patientId] = null;
+          });
+          setSelectedPaymentMethod((prev) => ({ ...prev, ...paymentMethods }));
+        }
+      } catch (e: any) {
+        Toast.show({
+          type: "error",
+          text1: e?.response?.data?.message || "Failed to load patients",
+        });
+      } finally {
+        setLoading(false);
+      }
+    },
+    [doctorId, pageSize, searchValue, status]
+  );
+
+  useEffect(() => {
+    if (!doctorId) return;
+    fetchPatients(1, PAGE_SIZE_DEFAULT);
+  }, [doctorId, status, searchValue, fetchPatients]);
+
+  useEffect(() => {
+    const showEvt = Platform.OS === 'android' ? 'keyboardDidShow' : 'keyboardWillShow';
+    const hideEvt = Platform.OS === 'android' ? 'keyboardDidHide' : 'keyboardWillHide';
+    const sh = Keyboard.addListener(showEvt, (e) => {
+      setKeyboardHeight(e?.endCoordinates?.height ?? 0);
+    });
+    const hi = Keyboard.addListener(hideEvt, () => setKeyboardHeight(0));
+    return () => {
+      sh.remove();
+      hi.remove();
+    };
+  }, []);
+
+  const loadMore = () => {
+    const maxPages = Math.ceil(totalPatients / pageSize);
+    if (!loading && page < maxPages) {
+      fetchPatients(page + 1, pageSize);
+    }
+  };
+
+  const enableEdit = (testId: string) => {
+    setEditable((prev) => (prev.includes(testId) ? prev : [...prev, testId]));
+  };
+
+  const handlePriceChange = (patientId: string, testId: string, value?: string) => {
+    const num = value ? Number(value.replace(/[^\d.]/g, "")) : 0;
+    setPatients((prev) =>
+      prev.map((p) =>
+        p.patientId === patientId
+          ? {
+            ...p,
+            tests: p.tests.map((t) => (t._id === testId ? { ...t, price: isNaN(num) ? 0 : num } : t)),
+          }
+          : p
+      )
+    );
+  };
+
+  const handlePriceSave = async (patientId: string, testId: string, testName?: string) => {
+    try {
+      setSaving((s) => ({ ...s, [testId]: true }));
+      const p = patients.find((x) => x.patientId === patientId);
+      const t = p?.tests.find((x) => x._id === testId);
+      if (!p || !t) return Toast.show({ type: "error", text1: "Test not found" });
+
+      const price = t.price;
+      if (price == null || isNaN(Number(price)) || Number(price) < 0) {
+        return Toast.show({ type: "error", text1: "Please enter a valid price" });
+      }
+      const token = await AsyncStorage.getItem("authToken");
+      const body = {
+        testId,
+        patientId,
+        price: Number(price),
+        doctorId,
+        testName: (testName || "").trim(),
+      };
+
+      const resp = await AuthPost(`lab/updatePatientTestPrice`, body, token);
+
+      if (resp?.data?.status === "success") {
+        Toast.show({ type: "success", text1: "Price updated" });
+        setEditable((prev) => prev.filter((id) => id !== testId));
+      } else {
+        throw new Error(resp?.message || "Unknown error");
+      }
+    } catch (e: any) {
+      Toast.show({
+        type: "error",
+        text1: e?.response?.data?.message || e?.message || "Failed to update price",
+      });
+    } finally {
+      setSaving((s) => ({ ...s, [testId]: false }));
+    }
+  };
+
+  const handlePaymentMethodSelect = async (patientId: string, method: "cash" | "upi") => {
+    setSelectedPaymentMethod((prev) => ({ ...prev, [patientId]: method }));
+
+    if (method === "upi") {
+      setCurrentPatientForQr(patientId);
+
+      const patient = patients.find((p) => p.patientId === patientId);
+      const addressId = patient?.addressId || (undefined as any);
+
+      if (!addressId) {
+        Toast.show({
+          type: "error",
+          text1: "No clinic address found for QR code",
+        });
+        setSelectedPaymentMethod((prev) => ({ ...prev, [patientId]: null }));
+        return;
+      }
+
+      const success = await fetchLabQRCode(addressId);
+      if (success) {
+        setShowUpiQr((prev) => ({ ...prev, [patientId]: true }));
+        setQrModalVisible(true);
+      } else {
+        setSelectedPaymentMethod((prev) => ({ ...prev, [patientId]: null }));
+      }
+    } else {
+      setShowUpiQr((prev) => ({ ...prev, [patientId]: false }));
+    }
+  };
+
+  const fetchLabQRCode = async (addressId: string) => {
+    try {
+      setQrLoading(true);
+      const token = await AsyncStorage.getItem("authToken");
+
+      const response = await AuthFetch(`users/getClinicsQRCode/${addressId}?userId=${doctorId}`, token);
+
+      if (response?.data?.status === "success" && response?.data?.data) {
+        const qrCodeUrl = response.data.data.labQrCode || response.data.data.qrCodeUrl;
+        if (qrCodeUrl) {
+          setQrCodeImage(qrCodeUrl);
+          return true;
+        } else {
+          Toast.show({
+            type: "error",
+            text1: "QR code not available",
+          });
+          return false;
+        }
+      } else {
+        Toast.show({
+          type: "error",
+          text1: "Failed to fetch QR code",
+        });
+        return false;
+      }
+    } catch (error: any) {
+      Toast.show({
+        type: "error",
+        text1: error?.response?.data?.message || "Failed to fetch QR code",
+      });
+      return false;
+    } finally {
+      setQrLoading(false);
+    }
+  };
+
+  const handleUpiPaymentConfirm = (patientId: string) => {
+    setQrModalVisible(false);
+    setShowUpiQr((prev) => ({ ...prev, [patientId]: false }));
+    handlePayment(patientId, "upi");
+  };
+
+  const handlePayment = async (patientId: string, method: "cash" | "upi") => {
+    try {
+      setPaying((p) => ({ ...p, [patientId]: true }));
+      const patient = patients.find((x) => x.patientId === patientId);
+      if (!patient) return;
+
+      const totalAmount = patient.tests.reduce((sum, t) => sum + (Number(t.price) || 0), 0);
+      if (totalAmount <= 0) {
+        Toast.show({ type: "error", text1: "No valid prices set for payment" });
+        return;
+      }
+      // block if any edited but not saved
+      const hasUnconfirmed = patient.tests.some((t) => editable.includes(t._id) && t.price != null);
+      if (hasUnconfirmed) {
+        Toast.show({ type: "error", text1: "Confirm all prices before payment" });
+        return;
+      }
+      const token = await AsyncStorage.getItem("authToken");
+      const body = {
+        patientId,
+        doctorId,
+        amount: totalAmount,
+        paymentMethod: method, // NEW: Include payment method
+        tests: patient.tests.map((t) => ({ testId: t._id, price: t.price, labTestID: t.labTestID })),
+      };
+
+      const resp = await AuthPost(`lab/processPayment`, body, token);
+
+      if (resp?.data?.status === "success") {
+        Toast.show({ type: "success", text1: `Payment processed via ${method.toUpperCase()}` });
+        setIsPaymentDone((prev) => ({ ...prev, [patientId]: true }));
+        setSelectedPaymentMethod((prev) => ({ ...prev, [patientId]: null }));
+        setShowUpiQr((prev) => ({ ...prev, [patientId]: false }));
+        updateCount();
+        fetchPatients(1, pageSize);
+      }
+    } catch (e: any) {
+      Toast.show({ type: "error", text1: e?.response?.data?.message || "Payment failed" });
+    } finally {
+      setPaying((p) => ({ ...p, [patientId]: false }));
+    }
+  };
+
+  // ============ NEW: Build invoice HTML (same format you had) ============
+  const buildInvoiceHTML = (patient: PatientRow, tests: TestItem[]) => {
+    const total = tests.reduce((s, t) => s + (Number(t.price) || 0), 0);
+    const patientNumber = String(patient.patientId || "").replace(/\D/g, "");
+    const invoiceNumber = `INV-${patientNumber.padStart(3, "0")}`;
+    const now = new Date();
+    const billingDate = now.toLocaleDateString("en-US", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    });
+
+    const firstName = (patient.patientName || "").split(" ")[0] || "";
+    const lastName = (patient.patientName || "").split(" ").slice(1).join(" ");
+
+    const lab = patient.labData || {};
+    const headerUrl = lab.labHeaderUrl || "";
+
+    const itemDate =
+      tests.length === 1
+        ? tests[0].updatedAt
+          ? new Date(tests[0].updatedAt).toLocaleString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+            hour: "numeric",
+            minute: "2-digit",
+            hour12: true,
+          })
+          : new Date(tests[0].createdAt || Date.now()).toLocaleString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+            hour: "numeric",
+            minute: "2-digit",
+            hour12: true,
+          })
+        : new Date(tests[0].createdAt || Date.now()).toLocaleString("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+          hour12: true,
+        });
+
+    const contactInfoHTML = `
+      <div class="provider-name">${lab.labName || "Diagnostic Lab"}</div>
+      <p>${lab.labAddress || "N/A"}</p>
+      <p>GST: ${lab.labGst || "N/A"}</p>
+      <p>PAN: ${lab.labPan || "N/A"}</p>
+      <p>Registration No: ${lab.labRegistrationNo || "N/A"}</p>
+    `;
+
+    const rows = tests
+      .map(
+        (t, i) => `
+        <tr>
+          <td>${i + 1}.</td>
+          <td>${t.testName || ""}</td>
+          <td class="price-column">${Number(t.price || 0).toFixed(2)}</td>
+        </tr>`
+      )
+      .join("");
+
+    const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8" />
+        <title>Invoice</title>
+        <style>
+          html, body { margin:0; padding:0; font-family: Arial, sans-serif; }
+          .container { padding: 15px; }
+          .header-img img { width: 100%; max-height: 220px; object-fit: contain; }
+          .provider-name { font-size: 18px; font-weight: 700; }
+          .section { margin-top: 10px; }
+          .patient-info { display:flex; justify-content: space-between; background:#f8f9fa; padding:10px; border-radius:6px; }
+          .data-table { width:100%; border-collapse: collapse; margin-top:8px; }
+          .data-table th, .data-table td { border:1px solid #ddd; padding: 8px; text-align:left; }
+          .data-table th { background:#f8f9fa; }
+          .price-column { text-align:right; }
+          .total { text-align:right; font-weight:700; margin-top:8px; }
+          .footer { text-align:center; color:#666; margin-top:16px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          ${headerUrl ? `<div class="header-img"><img src="${headerUrl}" /></div>` : `<div>${contactInfoHTML}</div>`}
+          <div class="section">
+            <h3>Patient Information</h3>
+            <div class="patient-info">
+              <div>
+                <p><strong>Patient ID:</strong> ${patient.patientId}</p>
+                <p><strong>First Name:</strong> ${firstName}</p>
+                <p><strong>Last Name:</strong> ${lastName}</p>
+                <p><strong>Mobile:</strong> ${patient.mobile || "Not Provided"}</p>
+              </div>
+              <div>
+                <p><strong>Referred by Dr.</strong> ${user?.firstname || "N/A"} ${user?.lastname || ""}</p>
+                <p><strong>Appointment Date&Time:</strong> ${itemDate}</p>
+                <p><strong>Invoice No:</strong> #${invoiceNumber}</p>
+                <p><strong>Billing Date:</strong> ${billingDate}</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="section">
+            <h3>Tests</h3>
+            <table class="data-table">
+              <thead><tr><th>SL No.</th><th>Name</th><th>Price (₹)</th></tr></thead>
+              <tbody>${rows}</tbody>
+            </table>
+            <div class="total">Grand Total: ₹ ${total.toFixed(2)}</div>
+          </div>
+
+          <div class="footer">
+            <p>Thank you for choosing Vydhyo</p>
+            <p>Powered by Vydhyo</p>
+          </div>
+        </div>
+      </body>
+    </html>`;
+
+    const fileBaseName = `Vydhyo_Invoice_${invoiceNumber}`;
+    return { html, fileBaseName };
+  };
+
+  const downloadInvoicePdf = async (p: PatientRow) => {
+    // Include only completed items (same as your print rule)
+    const completed = p.tests.filter((t) =>
+      ["completed", "complete", "paid"].includes(String(t.status).toLowerCase())
+    );
+    if (!completed.length) {
+      return Toast.show({ type: "error", text1: "No completed tests to download" });
+    }
+
+    try {
+      const { html, fileBaseName } = buildInvoiceHTML(p, completed);
+
+      const { filePath } = await RNHTMLtoPDF.convert({
+        html,
+        fileName: fileBaseName,
+        base64: false,
+        directory: "Documents",
+      });
+
+      if (!filePath) {
+        throw new Error("PDF path not available");
+      }
+
+      Toast.show({
+        type: "success",
+        text1: "PDF saved",
+        text2: filePath,
+      });
+    } catch (e: any) {
+      Toast.show({
+        type: "error",
+        text1: "Could not generate PDF",
+        text2: e?.message || "Unknown error",
+      });
+    }
+  };
+
+  // UI helpers
+  const statusTag = (sts: string) => {
+    const norm = (sts || "").toLowerCase();
+    const color =
+      norm === "completed"
+        ? "#16a34a"
+        : norm === "pending"
+          ? "#d97706"
+          : norm === "cancelled"
+            ? "#dc2626"
+            : norm === "in_progress"
+              ? "#2563eb"
+              : "#6b7280";
+    const label =
+      norm === "completed"
+        ? "Completed"
+        : norm === "pending"
+          ? "Pending"
+          : norm === "cancelled"
+            ? "Cancelled"
+            : norm === "in_progress"
+              ? "In Progress"
+              : "Unknown";
+    return (
+      <View style={[styles.tag, { backgroundColor: color + "22", borderColor: color }]}>
+        <Text style={{ color, fontWeight: "600", fontSize: responsiveText(FONT_SIZE.xs) }}>{label}</Text>
+      </View>
+    );
+  };
+
+  const renderTestRow = (p: PatientRow, t: TestItem) => {
+    const isEditable = editable.includes(t._id);
+    const initiallyNull = t.price == null;
+
+    return (
+      <View key={t._id} style={styles.testRow}>
+        <Text style={styles.testName}>{t.testName}</Text>
+
+        <View style={styles.priceRow}>
+          <TextInput
+            keyboardType="numeric"
+            placeholder="Enter price"
+            placeholderTextColor="#94a3b8"
+            value={t.price != null ? String(t.price) : ""}
+            onFocus={() => {
+              if (!isEditable) enableEdit(t._id);
+            }}
+            editable={t.status === "pending" && (isEditable || initiallyNull)}
+            onChangeText={(val) => handlePriceChange(p.patientId, t._id, val)}
+            style={[
+              styles.priceInput,
+              !(t.status === "pending" && (isEditable || initiallyNull)) && styles.priceInputDisabled,
+            ]}
+          />
+          <TouchableOpacity
+            onPress={() => handlePriceSave(p.patientId, t._id, t.testName)}
+            disabled={t.price == null || saving[t._id] || !(t.status === "pending" && (isEditable || initiallyNull))}
+            style={[
+              styles.saveBtn,
+              (t.price == null || saving[t._id] || !(t.status === "pending" && (isEditable || initiallyNull))) &&
+              styles.btnDisabled,
+            ]}
+          >
+            <Text style={styles.saveBtnText}>{saving[t._id] ? "Saving..." : "Save"}</Text>
+          </TouchableOpacity>
+          <View style={styles.statusContainer}>{statusTag(t.status)}</View>
+        </View>
+
+        {t.createdAt && (
+          <Text style={styles.dateText}>
+            {new Date(t.createdAt).toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+            })}
+          </Text>
+        )}
+      </View>
+    );
+  };
+
+  const calcTotal = (p: PatientRow) => p.tests.reduce((s, t) => s + (Number(t.price) || 0), 0);
+
+  const patientStatus = (p: PatientRow) => {
+    const allCompleted = p.tests.every((t) => t.status === "completed");
+    const anyPending = p.tests.some((t) => t.status === "pending");
+    if (allCompleted) return { label: "Completed", color: "#16a34a" };
+    if (anyPending && !p.tests.some((t) => t.status === "completed")) return { label: "Pending", color: "#d97706" };
+    return { label: "Partial", color: "#f59e0b" };
+  };
+
+  const renderPatient = ({ item }: { item: PatientRow }) => {
+    const total = calcTotal(item);
+    const sts = patientStatus(item);
+    const hasPending = item.tests.some((t) => t.status === "pending");
+    const paid = isPaymentDone[item.patientId];
+    const paymentMethod = selectedPaymentMethod[item.patientId];
+    const showUpi = showUpiQr[item.patientId];
+
+    // Filter tests based on status
+    const filteredTests =
+      status === "pending"
+        ? item.tests.filter((t) => t.status === "pending")
+        : item.tests.filter((t) => t.status === "completed");
+
+    return (
+      <View style={styles.rowCard}>
+        <View style={styles.rowHeader}>
+          <View style={styles.patientInfo}>
+            <Text style={styles.pid}>Patient ID: {item.patientId}</Text>
+            <Text style={styles.pname}>{item.patientName}</Text>
+          </View>
+          <View style={[styles.tag, { backgroundColor: sts.color + "22", borderColor: sts.color }]}>
+            <Text style={[styles.statusText, { color: sts.color }]}>{sts.label}</Text>
+          </View>
+        </View>
+
+        <View style={styles.testsBox}>
+          {filteredTests.length > 0 ? (
+            filteredTests.map((t) => renderTestRow(item, t))
+          ) : (
+            <Text style={styles.noTestsText}>{status === "pending" ? "No Pending Tests" : "No Completed Tests"}</Text>
+          )}
+        </View>
+
+        {!paid && hasPending && paymentMethod !== null && (
+          <View style={styles.paymentMethodContainer}>
+            <Text style={styles.paymentMethodTitle}>Select Payment Method:</Text>
+
+            <View style={styles.paymentOptions}>
+              <TouchableOpacity style={styles.paymentOption} onPress={() => handlePaymentMethodSelect(item.patientId, "cash")}>
+                <View style={styles.radioButton}>{paymentMethod === "cash" && <View style={styles.radioButtonSelected} />}</View>
+                <Text style={styles.paymentOptionText}>Cash</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.paymentOption} onPress={() => handlePaymentMethodSelect(item.patientId, "upi")}>
+                <View style={styles.radioButton}>{paymentMethod === "upi" && <View style={styles.radioButtonSelected} />}</View>
+                <Text style={styles.paymentOptionText}>UPI</Text>
+              </TouchableOpacity>
+            </View>
+
+            {paymentMethod === "cash" && (
+              <TouchableOpacity
+                style={[styles.confirmButton, paying[item.patientId] && styles.btnDisabled]}
+                disabled={paying[item.patientId]}
+                onPress={() => handlePayment(item.patientId, "cash")}
+              >
+                <Text style={styles.confirmButtonText}>
+                  {paying[item.patientId] ? "Processing..." : "Confirm Cash Payment"}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
+        <Modal
+          visible={paymentMethod === "upi" && showUpi && qrModalVisible}
+          animationType="slide"
+          transparent={true}
+          onRequestClose={() => {
+            setQrModalVisible(false);
+            setShowUpiQr((prev) => ({ ...prev, [item.patientId]: false }));
+            setSelectedPaymentMethod((prev) => ({ ...prev, [item.patientId]: null }));
+          }}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.qrText}>Scan QR Code to Pay</Text>
+
+              {qrLoading ? (
+                // BLUE loader specifically for QR
+                <ActivityIndicator size="large" color="#007bff" />
+              ) : qrCodeImage ? (
+                <Image source={{ uri: qrCodeImage }} style={styles.qrImage} resizeMode="contain" />
+              ) : (
+                <Text style={styles.errorText}>QR code not available</Text>
+              )}
+
+              <Text style={styles.upiId}>Total Amount: ₹ {total.toFixed(2)}</Text>
+
+              <TouchableOpacity
+                style={[styles.confirmButton, paying[item.patientId] && styles.btnDisabled]}
+                disabled={paying[item.patientId]}
+                onPress={() => handleUpiPaymentConfirm(item.patientId)}
+              >
+                <Text style={styles.confirmButtonText}>{paying[item.patientId] ? "Processing..." : "Confirm UPI Payment"}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => {
+                  setQrModalVisible(false);
+                  setShowUpiQr((prev) => ({ ...prev, [item.patientId]: false }));
+                  setSelectedPaymentMethod((prev) => ({ ...prev, [item.patientId]: null }));
+                }}
+                style={styles.closeButton}
+              >
+                <Text style={styles.closeButtonText}>Close</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+        <View style={styles.footerBar}>
+          <Text style={styles.totalText}>Total: ₹ {total.toFixed(2)}</Text>
+
+          {status === "completed" ? (
+            <TouchableOpacity style={styles.primaryBtn} onPress={() => downloadInvoicePdf(item)}>
+              <Text style={styles.primaryBtnText}>Download PDF</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={[
+                styles.primaryBtn,
+                (total <= 0 || !hasPending || paid || paying[item.patientId]) && styles.btnDisabled,
+              ]}
+              disabled={total <= 0 || !hasPending || paid || paying[item.patientId]}
+              onPress={() => {
+                if (paymentMethod === null) {
+                  setSelectedPaymentMethod((prev) => ({ ...prev, [item.patientId]: "cash" }));
+                  handlePaymentMethodSelect(item.patientId, "cash");
+                } else {
+                  handlePayment(item.patientId, paymentMethod);
+                }
+              }}
+            >
+              <Text style={styles.primaryBtnText}>
+                {paid ? "Paid" : paying[item.patientId] ? "Processing..." : "Process Payment"}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+    );
+  };
+
+  return (
+    <View style={{ flex: 1 }}>
+      {loading && patients.length === 0 ? (
+        <View style={styles.spinningContainer}>
+          <ActivityIndicator size="large" color="#007bff" />
+          <Text style={styles.loadingText}>Loading List...</Text>
+        </View>
+      ) : patients?.length === 0 ? (
+        <View style={styles.spinningContainer}>
+          <Text style={styles.noDataText}>No Data Found</Text>
+        </View>
+      ) : (
+        <FlatList
+          ref={listRef}
+          data={patients}
+          keyExtractor={(x) => x.patientId}
+          renderItem={renderPatient}
+          contentContainerStyle={[styles.listContent, { paddingBottom: SAFE_AREA.safeBottom + keyboardHeight + SPACING.lg }]}
+          keyboardShouldPersistTaps="always"
+          keyboardDismissMode="none"
+          automaticallyAdjustKeyboardInsets
+          removeClippedSubviews={false}
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.3}
+          refreshing={loading}
+          onRefresh={() => fetchPatients(1, pageSize)}
+        />
+      )}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  loader: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  rowCard: {
+    backgroundColor: "#fff",
+    borderRadius: LAYOUT.borderRadius.lg,
+    padding: isTablet ? SPACING.lg : SPACING.xxs,
+    marginBottom: SPACING.xxs,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    ...LAYOUT.shadow.xxs,
+  },
+  rowHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: SPACING.xxs,
+  },
+  patientInfo: {
+    flex: 1,
+  },
+  pid: {
+    color: "#334155",
+    fontWeight: "600",
+    fontSize: responsiveText(FONT_SIZE.xxs),
+  },
+  pname: {
+    color: "#111827",
+    fontWeight: "800",
+    fontSize: responsiveText(FONT_SIZE.xxs),
+    marginTop: SPACING.xxs,
+  },
+  tag: {
+    paddingHorizontal: SPACING.xxs,
+    paddingVertical: SPACING.xxs,
+    borderRadius: LAYOUT.borderRadius.md,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+  statusText: {
+    fontSize: responsiveText(FONT_SIZE.xs),
+    fontWeight: "600",
+  },
+  testsBox: {
+    backgroundColor: "#f9fafb",
+    borderRadius: LAYOUT.borderRadius.md,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    padding: SPACING.xxs,
+  },
+  testRow: {
+    backgroundColor: "#fff",
+    borderRadius: LAYOUT.borderRadius.md,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    padding: SPACING.xxs,
+    marginBottom: SPACING.xxs,
+  },
+  testName: {
+    fontWeight: "700",
+    color: "#0f172a",
+    fontSize: responsiveText(FONT_SIZE.xxs),
+  },
+  priceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.xxs,
+    marginTop: SPACING.xxs,
+    justifyContent: "space-between",
+    flexWrap: 'wrap',
+  },
+  priceInput: {
+    width: moderateScale(100),
+    borderWidth: 1,
+    borderColor: "#cbd5e1",
+    borderRadius: LAYOUT.borderRadius.md,
+    paddingHorizontal: SPACING.xxs,
+    paddingVertical: moderateScale(6),
+    backgroundColor: "#fff",
+    color: "#000000",
+    fontSize: responsiveText(FONT_SIZE.xxs),
+  },
+  priceInputDisabled: {
+    backgroundColor: "#f3f4f6",
+    color: "#94a3b8",
+  },
+  statusContainer: {
+    flex: 1,
+    alignItems: 'flex-end',
+  },
+  saveBtn: {
+    backgroundColor: "#1f2937",
+    paddingHorizontal: SPACING.xxs,
+    paddingVertical: moderateScale(6),
+    borderRadius: LAYOUT.borderRadius.md,
+    minWidth: moderateScale(70),
+  },
+  saveBtnText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: responsiveText(FONT_SIZE.xs),
+    textAlign: 'center',
+  },
+  dateText: {
+    fontSize: responsiveText(FONT_SIZE.xs),
+    color: "#64748B",
+    marginTop: SPACING.xs,
+  },
+  noTestsText: {
+    color: "black",
+    fontSize: responsiveText(FONT_SIZE.xxs),
+    textAlign: 'center',
+  },
+  footerBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: SPACING.xxs,
+  },
+  totalText: {
+    fontWeight: "800",
+    color: "#0f172a",
+    fontSize: responsiveText(FONT_SIZE.xxs),
+  },
+  primaryBtn: {
+    backgroundColor: "#1A3C6A",
+    paddingHorizontal: SPACING.xxs,
+    paddingVertical: moderateScale(10),
+    borderRadius: LAYOUT.borderRadius.md,
+  },
+  primaryBtnText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: responsiveText(FONT_SIZE.xxs),
+  },
+  btnDisabled: {
+    opacity: 0.5,
+  },
+  spinningContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: SPACING.lg,
+  },
+  loadingText: {
+    color: "black",
+    fontSize: responsiveText(FONT_SIZE.xxs),
+    marginTop: SPACING.xxs,
+  },
+  noDataText: {
+    color: "black",
+    fontSize: responsiveText(FONT_SIZE.xxs),
+  },
+  listContent: {
+    paddingTop: SPACING.xxs,
+  },
+
+  // Payment method styles
+  paymentMethodContainer: {
+    marginTop: SPACING.xxs,
+    padding: SPACING.xxs,
+    backgroundColor: "#f8f9fa",
+    borderRadius: LAYOUT.borderRadius.md,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  paymentMethodTitle: {
+    fontWeight: "600",
+    marginBottom: SPACING.xxs,
+    color: "#334155",
+    fontSize: responsiveText(FONT_SIZE.xxs),
+  },
+  paymentOptions: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    marginBottom: SPACING.xxs,
+  },
+  paymentOption: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  radioButton: {
+    width: moderateScale(20),
+    height: moderateScale(20),
+    borderRadius: moderateScale(10),
+    borderWidth: 2,
+    borderColor: "#1A3C6A",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: SPACING.xxs,
+  },
+  radioButtonSelected: {
+    width: moderateScale(10),
+    height: moderateScale(10),
+    borderRadius: moderateScale(5),
+    backgroundColor: "#1A3C6A",
+  },
+  paymentOptionText: {
+    color: "#334155",
+    fontSize: responsiveText(FONT_SIZE.xxs),
+  },
+  confirmButton: {
+    backgroundColor: "#1A3C6A",
+    padding: SPACING.xxs,
+    borderRadius: LAYOUT.borderRadius.xxs,
+    alignItems: "center",
+    marginTop: SPACING.xxs,
+  },
+  confirmButtonText: {
+    color: "white",
+    fontWeight: "600",
+    fontSize: responsiveText(FONT_SIZE.xxs),
+  },
+
+  // UPI Modal styles
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  },
+  modalContent: {
+    backgroundColor: "#fff",
+    padding: SPACING.lg,
+    borderRadius: LAYOUT.borderRadius.lg,
+    alignItems: "center",
+    width: responsiveWidth(85),
+    maxWidth: moderateScale(400),
+  },
+  qrText: {
+    fontSize: responsiveText(FONT_SIZE.xxs),
+    marginBottom: SPACING.xxs,
+    color: "#334155",
+    fontWeight: "600",
+  },
+  qrImage: {
+    width: moderateScale(200),
+    height: moderateScale(200),
+    marginBottom: SPACING.xxs,
+  },
+  errorText: {
+    fontSize: responsiveText(FONT_SIZE.xxs),
+    color: "#dc2626",
+    marginBottom: SPACING.xxs,
+  },
+  upiId: {
+    fontSize: responsiveText(FONT_SIZE.xxs),
+    color: "#666",
+    marginBottom: SPACING.xxs,
+  },
+  closeButton: {
+    marginTop: SPACING.xxs,
+    padding: SPACING.xxs,
+  },
+  closeButtonText: {
+    color: "#1A3C6A",
+    fontWeight: "600",
+    fontSize: responsiveText(FONT_SIZE.xxs),
+  },
+});

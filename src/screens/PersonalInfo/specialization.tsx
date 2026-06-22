@@ -1,0 +1,1231 @@
+import { useEffect, useState, useRef } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  Keyboard,
+  Platform,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  ScrollView,
+  SafeAreaView,
+  Modal,
+  Pressable,
+} from 'react-native';
+import CheckBox from '@react-native-community/checkbox';
+import { useNavigation } from '@react-navigation/native';
+import { pick, types } from '@react-native-documents/picker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Toast from 'react-native-toast-message';
+import { useSelector } from 'react-redux';
+import ProgressBar from '../progressBar/progressBar';
+import { AuthFetch, UpdateFiles } from '../../auth/auth';
+import { getCurrentStepIndex, TOTAL_STEPS } from '../../utility/registrationSteps';
+import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
+
+// Import responsive utilities
+import {
+  isAndroid,
+  isTablet,
+  SAFE_AREA,
+  SPACING,
+  FONT_SIZE,
+  ICON_SIZE,
+  LAYOUT,
+  responsiveText,
+  scale,
+  verticalScale,
+  HIT_SLOP,
+} from '../../utility/responsive';
+import { LeftIndicatorIcon, UploadIcon } from '../../utility/SvgIcons';
+
+// Specialization options
+// const specializationOptions = [
+//   'Anatomy',
+//   'Ayurveda',
+//   'Biochemistry',
+//   'Breast and Endocrine Surgery',
+//   'BDS(Dentist)',
+//   'Cardiology',
+//   'Cardiothoracic and Vascular Surgery',
+//   'Child Health',
+//   'Clinical Cardiology',
+//   'Clinical Immunology / Immunology and Immunopathology',
+//   'Clinical Nutrition',
+//   'Community Medicine',
+//   'Conservative Dentistry and Endodontics',
+//   'Critical Care / Critical Care Medicine',
+//   'Dermatology, Venereology & Leprosy',
+//   'Diabetology',
+//   'ENT / Otorhinolaryngology (ENT)',
+//   'Emergency Medicine',
+//   'Endocrine Surgery',
+//   'Endocrinology',
+//   'Family Medicine',
+//   'Forensic Medicine',
+//   'General Medicine',
+//   'General Surgery',
+//   'Geriatrics / Geriatric Medicine',
+//   'Gynaecologic Oncology',
+//   'Hand Surgery',
+//   'Health Administration / Hospital Administration',
+//   'Hematology',
+//   'Hepato-Pancreato-Biliary Surgery',
+//   'Hepatology',
+//   'Homeopathy',
+//   'Immunohematology & Blood Transfusion',
+//   'Industrial Health',
+//   'Infectious Diseases',
+//   'Internal Medicine',
+//   'Interventional Radiology',
+//   'Lifestyle Medicine (IBLM)',
+//   'Maternal & Fetal Medicine',
+//   'Medical Gastroenterology',
+//   'Medical Genetics',
+//   'Medical Oncology',
+//   'Microbiology',
+//   'Minimal Access Surgery and Robotic Surgery',
+//   'Neonatology',
+//   'Nephrology',
+//   'Neurology',
+//   'Neurosurgery',
+//   'Nuclear Medicine',
+//   'Obstetrics and Gynaecology',
+//   'Occupational Health',
+//   'Ophthalmology / Ophthalmic Medicine and Surgery',
+//   'Oral Medicine and Radiology',
+//   'Oral and Maxillofacial Surgery',
+//   'Orthodontics and Dentofacial Orthopedics',
+//   'Pain Medicine',
+//   'Palliative Medicine / Onco-Anesthesia and Palliative Medicine',
+//   'Pathology / Clinical Pathology / Oral Pathology and Microbiology',
+//   'Pediatric Cardiology',
+//   'Pediatric Gastroenterology',
+//   'Pediatric Nephrology',
+//   'Pediatric Neurology',
+//   'Pediatric Surgery',
+//   'Pediatrics',
+//   'Pedodontics and Preventive Dentistry',
+//   'Pharmacology / Clinical Pharmacology',
+//   'Physiotherapist',
+//   'Plastic & Reconstructive Surgery / Plastic Surgery',
+//   'Preventive Cardiology',
+//   'Prosthodontics and Crown & Bridge',
+//   'Psychiatry / Psychological Medicine',
+//   'Public Health / Public Health Dentistry',
+//   'Radiodiagnosis / Medical Radiodiagnosis / Radio Diagnosis',
+//   'Reproductive Medicine',
+//   'Respiratory Medicine / Pulmonary & Critical Care Medicine',
+//   'Rheumatology',
+//   'Sports Medicine',
+//   'Surgical Gastroenterology',
+//   'Surgical Oncology',
+//   'Trauma Surgery and Critical Care',
+//   'Tropical Medicine / Tropical Medicine and Health',
+//   'Tropical Medicine and Health',
+//   'Tuberculosis and Chest Diseases',
+//   'Unani',
+//   'Urology',
+//   'Vascular Surgery',
+//   'Yoga and Naturopathy',
+// ];
+
+type NavigationProp = {
+  navigate: (screen: string, params?: any) => void;
+  goBack: () => void;
+};
+
+const SpecializationDetails = () => {
+  const userId = useSelector((state: any) => state.currentUserID);
+  const [degrees, setDegrees] = useState<{ id: string; degreeName: string }[]>([]);
+  const [formData, setFormData] = useState({
+    degree: '',
+    specialization: '',
+    yearsExperience: '',
+    bio: '',
+    customDegree: '',
+    degrees: null as { uri: string; type: string; name: string } | null,
+    certifications: null as { uri: string; type: string; name: string } | null,
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [specializationModalVisible, setSpecializationModalVisible] = useState(false);
+  const [tempDegrees, setTempDegrees] = useState<string[]>(
+    formData.degree ? formData.degree.split(',').map(deg => deg.trim()).filter(deg => deg) : []
+  );
+  const [uploadedFiles, setUploadedFiles] = useState({
+    degrees: { name: '', file: null as { uri: string; type: string; name: string } | null },
+    certifications: { name: '', file: null as { uri: string; type: string; name: string } | null },
+  });
+  const [errors, setErrors] = useState({
+    degree: '',
+    specialization: '',
+    yearsExperience: '',
+  });
+  const [degreeSearch, setDegreeSearch] = useState('');
+  const [specializationSearch, setSpecializationSearch] = useState('');
+  const navigation = useNavigation<NavigationProp>();
+  const [loadingUser, setLoadingUser] = useState(false);
+
+  // Scroll + input refs for precise scroll-to-field
+  const scrollRef = useRef<ScrollView | null>(null);
+  const inputRefs = {
+    yearsExperience: useRef<TextInput | null>(null),
+    bio: useRef<TextInput | null>(null),
+  };
+
+  // Smooth layout when keyboard shows/hides on iOS
+  useEffect(() => {
+    if (Platform.OS === 'ios') {
+      const showSub = Keyboard.addListener('keyboardWillShow', () => {
+        // nice smooth transition
+      });
+      const hideSub = Keyboard.addListener('keyboardWillHide', () => {
+        // nice smooth transition
+      });
+      return () => {
+        showSub.remove();
+        hideSub.remove();
+      };
+    }
+  }, []);
+
+  // Precise scroll to focused input (similar to previous screen)
+  const onInputFocus = (refName: keyof typeof inputRefs) => {
+    setTimeout(() => {
+      const inputRef = inputRefs[refName].current;
+      if (!inputRef || !scrollRef.current) return;
+
+      inputRef.measure((x, y, width, height, pageX, pageY) => {
+        // Offset so the field sits nicely above keyboard + button
+        const BUFFER = verticalScale(120);
+        const targetY = pageY - BUFFER;
+
+        scrollRef.current?.scrollTo({
+          x: 0,
+          y: targetY > 0 ? targetY : 0,
+          animated: true,
+        });
+      });
+    }, 140);
+  };
+
+  const [specializations, setSpecializations] = useState<string[]>([]);
+  const fetchSpecializations = async () => {
+  try {
+    const token = await AsyncStorage.getItem('authToken');
+    const response = await AuthFetch('catalogue/specialization/getSpecializations?isActive=1', token);  
+    if (response?.data?.data) {
+      const specNames = response?.data?.data?.map((item: any) => item.name);
+      const sortedSpecs = specNames.sort((a: string, b: string) => 
+        a.localeCompare(b)
+      );
+      
+      setSpecializations(sortedSpecs);
+    }
+  } catch (error) {
+    Toast.show({
+      type: 'error',
+      text1: 'Error',
+      text2: 'Failed to fetch specializations.',
+      position: 'top',
+      visibilityTime: 4000,
+    });
+  }
+};
+  const handleRemoveFile = (field: 'degrees' | 'certifications') => {
+    setFormData({
+      ...formData,
+      [field]: null,
+    });
+    setUploadedFiles(prev => ({
+      ...prev,
+      [field]: { name: '', file: null },
+    }));
+  };
+
+  const handleDegreeChange = (itemValue: string) => {
+    let newDegrees: string[];
+
+    if (tempDegrees.includes(itemValue)) {
+      // Remove degree if already selected
+      newDegrees = tempDegrees.filter(deg => deg !== itemValue);
+    } else {
+      // Add degree to selection
+      newDegrees = [...tempDegrees, itemValue].filter(deg => deg !== '');
+    }
+
+    setTempDegrees(newDegrees);
+    setErrors(prev => ({ ...prev, degree: '' }));
+  };
+
+  const handleConfirm = () => {
+    // Replace "Others" with customDegree value if provided and non-empty, otherwise exclude it
+    const finalDegrees = tempDegrees
+      .map(deg => (deg === 'Others' && formData.customDegree?.trim() ? formData.customDegree.trim() : deg))
+      .filter(deg => deg !== 'Others' && deg.trim() !== '')
+      .join(', ');
+
+    setFormData({
+      ...formData,
+      degree: finalDegrees,
+      customDegree: tempDegrees.includes('Others') ? formData.customDegree : '',
+    });
+    setModalVisible(false);
+    setDegreeSearch('');
+  };
+
+  const handleCancel = () => {
+    setTempDegrees(formData.degree ? formData.degree.split(',').map(deg => deg.trim()).filter(deg => deg) : []);
+    setModalVisible(false);
+    setDegreeSearch('');
+  };
+
+  const renderDegreeItem = ({ item }: { item: { id: string; degreeName: string } }) => (
+    <Pressable style={styles.checkboxContainer} onPress={() => handleDegreeChange(item.degreeName)}>
+      <CheckBox
+        value={tempDegrees.includes(item.degreeName)}
+        onValueChange={() => handleDegreeChange(item.degreeName)}
+        disabled={isLoading}
+        tintColors={{ true: '#00203F', false: '#999' }}
+      />
+      <Text style={styles.checkboxLabel}>{item.degreeName}</Text>
+    </Pressable>
+  );
+
+  const degreeList = [...degrees, { id: 'others', degreeName: 'Others' }];
+
+  const validateForm = () => {
+    const newErrors = {
+      degree: '',
+      specialization: '',
+      yearsExperience: '',
+    };
+
+    let isValid = true;
+
+    if (!formData.degree) {
+      newErrors.degree = 'Please select at least one degree.';
+      isValid = false;
+    }
+    if (tempDegrees.includes('Others') && !formData.customDegree?.trim()) {
+      newErrors.degree = 'Please enter a custom degree for "Others".';
+      isValid = false;
+    }
+    if (!formData.specialization) {
+      newErrors.specialization = 'Please select a specialization.';
+      isValid = false;
+    }
+    if (!formData.yearsExperience || isNaN(Number(formData.yearsExperience))) {
+      newErrors.yearsExperience = 'Please enter a valid number for years of experience.';
+      isValid = false;
+    }
+
+    setErrors(newErrors);
+    return isValid;
+  };
+
+  const handleFileUpload = async (field: 'degrees' | 'certifications') => {
+    Alert.alert(
+      'Upload File',
+      'Choose an option',
+      [
+        {
+          text: 'Camera',
+          onPress: async () => {
+            try {
+              const result = await launchCamera({
+                mediaType: 'photo',
+                includeBase64: false,
+              });
+              if (result.assets && result.assets.length > 0) {
+                const asset = result.assets[0];
+                setFormData({
+                  ...formData,
+                  [field]: {
+                    uri: asset.uri,
+                    type: asset.type || 'image/jpeg',
+                    name: asset.fileName || 'file.jpg',
+                  },
+                });
+                // Set the file name for display
+                setUploadedFiles(prev => ({
+                  ...prev,
+                  [field]: {
+                    name: asset.fileName || 'file.jpg',
+                    file: {
+                      uri: asset.uri,
+                      type: asset.type || 'image/jpeg',
+                      name: asset.fileName || 'file.jpg',
+                    },
+                  },
+                }));
+              } else {
+                Toast.show({
+                  type: 'error',
+                  text1: 'Error',
+                  text2: 'No image selected from camera',
+                  position: 'top',
+                  visibilityTime: 4000,
+                });
+              }
+            } catch (error) {
+              Alert.alert('Error', 'Camera access failed.');
+            }
+          },
+        },
+        {
+          text: 'Gallery',
+          onPress: async () => {
+            try {
+              const result = await launchImageLibrary({
+                mediaType: 'photo',
+                includeBase64: false,
+              });
+              if (result.assets && result.assets.length > 0) {
+                const asset = result.assets[0];
+                setFormData({
+                  ...formData,
+                  [field]: {
+                    uri: asset.uri,
+                    type: asset.type || 'image/jpeg',
+                    name: asset.fileName || 'file.jpg',
+                  },
+                });
+                // Set the file name for display
+                setUploadedFiles(prev => ({
+                  ...prev,
+                  [field]: {
+                    name: asset.fileName || 'file.jpg',
+                    file: {
+                      uri: asset.uri,
+                      type: asset.type || 'image/jpeg',
+                      name: asset.fileName || 'file.jpg',
+                    },
+                  },
+                }));
+              } else {
+                Toast.show({
+                  type: 'error',
+                  text1: 'Error',
+                  text2: 'No image selected from gallery',
+                  position: 'top',
+                  visibilityTime: 4000,
+                });
+              }
+            } catch (error) {
+              Alert.alert('Error', 'Gallery access failed.');
+            }
+          },
+        },
+        {
+          text: 'Upload PDF',
+          onPress: async () => {
+            try {
+              const [result] = await pick({
+                type: [types.pdf, types.images],
+              });
+              if (result) {
+                setFormData({
+                  ...formData,
+                  [field]: {
+                    uri: result.uri,
+                    type: result.type || 'application/pdf',
+                    name: result.name || 'file.pdf',
+                  },
+                });
+                // Set the file name for display
+                setUploadedFiles(prev => ({
+                  ...prev,
+                  [field]: {
+                    name: result.name || 'file.pdf',
+                    file: {
+                      uri: result.uri,
+                      type: result.type || 'application/pdf',
+                      name: result.name || 'file.pdf',
+                    },
+                  },
+                }));
+              } else {
+                Toast.show({
+                  type: 'error',
+                  text1: 'Error',
+                  text2: 'Invalid file selected. Please try again.',
+                  position: 'top',
+                  visibilityTime: 4000,
+                });
+              }
+            } catch (error) {
+              Alert.alert('Error', 'PDF selection failed.');
+            }
+          },
+        },
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
+  const handleNext = async () => {
+    if (!validateForm()) return;
+
+    const token = await AsyncStorage.getItem('authToken');
+    try {
+      setIsLoading(true);
+      const formDataObj = new FormData();
+      formDataObj.append('id', userId);
+      formDataObj.append('name', formData.specialization);
+      formDataObj.append('experience', formData.yearsExperience);
+      formDataObj.append('degree', formData.degree);
+      formDataObj.append('bio', formData.bio);
+      if (hadDegreeCert && !uploadedFiles.degrees.file) {
+        formDataObj.append('removeDegreeCertificate', 'true');
+      } else if (uploadedFiles.degrees.file) {
+        formDataObj.append('drgreeCertificate', {
+          uri: Platform.OS === 'android' ? uploadedFiles.degrees.file.uri : uploadedFiles.degrees.file.uri.replace('file://', ''),
+          type: uploadedFiles.degrees.file.type || 'application/pdf',
+          name: uploadedFiles.degrees.file.name || 'degree.pdf',
+        } as any);
+      }
+
+      if (hadSpecCert && !uploadedFiles.certifications.file) {
+        formDataObj.append('removeSpecializationCertificate', 'true');
+      } else if (uploadedFiles.certifications.file) {
+        formDataObj.append('specializationCertificate', {
+          uri: Platform.OS === 'android' ? uploadedFiles.certifications.file.uri : uploadedFiles.certifications.file.uri.replace('file://', ''),
+          type: uploadedFiles.certifications.file.type || 'application/pdf',
+          name: uploadedFiles.certifications.file.name || 'certification.pdf',
+        } as any);
+      }
+
+      const response = await UpdateFiles('users/updateSpecialization', formDataObj, token);
+      if (response.status === 'success') {
+        Toast.show({
+          type: 'success',
+          text1: 'Success',
+          text2: 'Specialization details updated successfully!',
+          position: 'top',
+          visibilityTime: 3000,
+        });
+        await AsyncStorage.setItem('currentStep', 'Practice');
+        navigation.navigate('Practice');
+      } else {
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: response.message?.message || 'Failed to update specialization details.',
+          position: 'top',
+          visibilityTime: 4000,
+        });
+      }
+    } catch (err) {
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Failed to update specialization details.',
+        position: 'top',
+        visibilityTime: 4000,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleBack = () => {
+    navigation.navigate('PersonalInfo');
+  };
+
+  const fetchDegrees = async () => {
+    try {
+      const token = await AsyncStorage.getItem('authToken');
+      const response = await AuthFetch('catalogue/degree/getAllDegrees', token);
+      const data = response?.data?.data || [];
+
+      const sortedData = data.sort((a: { degreeName: string; }, b: { degreeName: any; }) =>
+        a.degreeName.localeCompare(b.degreeName)
+      );
+
+      setDegrees(sortedData);
+    } catch (error) {
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Failed to fetch degrees.',
+        position: 'top',
+        visibilityTime: 4000,
+      });
+    }
+  };
+
+  const [hadDegreeCert, setHadDegreeCert] = useState(false);
+  const [hadSpecCert, setHadSpecCert] = useState(false);
+
+  const fetchUserData = async () => {
+    setLoadingUser(true);
+    try {
+      const token = await AsyncStorage.getItem('authToken');
+      if (token) {
+        const response = await AuthFetch('users/getUser', token);
+        if (response?.data?.status === 'success') {
+          const userData = response.data.data;
+          setFormData({
+            degree: userData?.specialization?.degree || '',
+            specialization: userData?.specialization?.name || '',
+            yearsExperience:
+              userData?.specialization?.experience !== undefined &&
+                userData?.specialization?.experience !== null
+                ? String(userData.specialization.experience)
+                : '',
+            bio: userData?.specialization?.bio || '',
+            customDegree: userData?.specialization?.customDegree || '',
+            degrees: userData?.specialization?.degreeCertificateUrl ? {
+              uri: userData.specialization.degreeCertificateUrl,
+              type: 'application/pdf',
+              name: 'degree_certificate.pdf'
+            } : null,
+            certifications: userData?.specialization?.specializationCertificateUrl ? {
+              uri: userData.specialization.specializationCertificateUrl,
+              type: 'application/pdf',
+              name: 'specialization_certificate.pdf'
+            } : null,
+          });
+          setTempDegrees(userData?.specialization?.degree ? userData?.specialization?.degree.split(',').map((deg: string) => deg.trim()).filter((deg: string) => deg) : []);
+
+          if (userData?.specialization?.degreeCertificateUrl) {
+            setHadDegreeCert(true);
+          } else {
+            setHadDegreeCert(false);
+          }
+          if (userData?.specialization?.specializationCertificateUrl) {
+            setHadSpecCert(true);
+          } else {
+            setHadSpecCert(false);
+          }
+          // Set file names if they exist
+          setUploadedFiles({
+            degrees: {
+              name: userData?.specialization?.degreeCertificateUrl ? 'degree_certificate.pdf' : '',
+              file: userData?.specialization?.degreeCertificateUrl ? {
+                uri: userData.specialization.degreeCertificateUrl,
+                type: 'application/pdf',
+                name: 'degree_certificate.pdf'
+              } : null
+            },
+            certifications: {
+              name: userData?.specialization?.specializationCertificateUrl ? 'specialization_certificate.pdf' : '',
+              file: userData?.specialization?.specializationCertificateUrl ? {
+                uri: userData.specialization.specializationCertificateUrl,
+                type: 'application/pdf',
+                name: 'specialization_certificate.pdf'
+              } : null
+            }
+          });
+        }
+      }
+    } catch (error: any) {
+      Alert.alert('Error', error?.message || 'Failed to load user data.');
+    } finally {
+      setLoadingUser(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUserData();
+    fetchDegrees();
+    fetchSpecializations();
+  }, []);
+
+  // Filter degrees based on search term (case-insensitive). Ensure 'Others' is included.
+  const filteredDegreeList = (() => {
+    const search = degreeSearch.trim().toLowerCase();
+    const base = degreeList;
+    if (!search) return base;
+    const filtered = base.filter(d => d.degreeName.toLowerCase().includes(search));
+    // ensure 'Others' is present (so user can always pick custom)
+    if (!filtered.some(d => d.degreeName === 'Others')) {
+      const others = base.find(d => d.degreeName === 'Others');
+      if (others) filtered.push(others);
+    }
+    return filtered;
+  })();
+
+  // Filter specializations based on search (case-insensitive)
+  const filteredSpecializations = (() => {
+    const s = specializationSearch.trim().toLowerCase();
+    if (!s) return specializations;
+    return specializations?.filter(spec => spec.toLowerCase().includes(s));
+  })();
+
+  return (
+    <SafeAreaView style={styles.safeContainer}>
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoidingContainer}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={0}
+      >
+        {(isLoading || loadingUser) && (
+          <View style={styles.loaderOverlay}>
+            <ActivityIndicator size="large" color="#00203F" />
+            <Text style={styles.loaderText}>Processing...</Text>
+          </View>
+        )}
+
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={handleBack} disabled={isLoading}
+            hitSlop={HIT_SLOP.md}
+          >
+            <LeftIndicatorIcon size={ICON_SIZE.lg} color="#fff" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Specialization Details</Text>
+        </View>
+
+        <ProgressBar currentStep={getCurrentStepIndex('Specialization')} totalSteps={TOTAL_STEPS} />
+
+        <View style={styles.contentArea}>
+          <ScrollView 
+            ref={scrollRef}
+            style={styles.scrollContainer}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+          <View style={styles.formContainer}>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Degree*</Text>
+              <TouchableOpacity
+                style={[styles.input, styles.dropdownButton, errors.degree && styles.inputError]}
+                onPress={() => !isLoading && setModalVisible(true)}
+                disabled={isLoading}
+              >
+                <Text style={styles.dropdownText}>
+                  {formData.degree || 'Select degrees'}
+                </Text>
+              </TouchableOpacity>
+              {errors.degree ? (
+                <Text style={styles.errorText}>{errors.degree}</Text>
+              ) : null}
+                <Modal
+                visible={modalVisible}
+                transparent={true}
+                animationType="slide"
+                onRequestClose={handleCancel}
+              >
+                <View style={styles.modalContainer}>
+                  <View style={styles.modalContent}>
+                    <Text style={styles.modalTitle}>Select Degrees</Text>
+
+                      <View style={{ marginBottom: SPACING.sm }}>
+                      <TextInput
+                        placeholder="Search degrees..."
+                        placeholderTextColor="#999"
+                        value={degreeSearch}
+                        onChangeText={setDegreeSearch}
+                        style={[styles.input, styles.searchInput]}
+                        editable={!isLoading}
+                      />
+                    </View>
+
+                    <ScrollView
+                      style={styles.listContainer}
+                      keyboardShouldPersistTaps="handled"
+                      bounces={false}
+                    >
+                      {filteredDegreeList.map((item) => (
+                        <Pressable
+                          key={item.id}
+                          style={styles.checkboxRow}
+                          onPress={() => handleDegreeChange(item.degreeName)}
+                        >
+                          <CheckBox
+                            value={tempDegrees.includes(item.degreeName)}
+                            onValueChange={() => handleDegreeChange(item.degreeName)}
+                            disabled={isLoading}
+                            tintColors={{ true: '#00203F', false: '#999' }}
+                          />
+                          <Text style={styles.checkboxLabel}>{item.degreeName}</Text>
+                        </Pressable>
+                      ))}
+                    </ScrollView>
+
+                    {tempDegrees.includes('Others') && (
+                      <TextInput
+                        style={[styles.input, styles.textInput]}
+                        value={formData.customDegree || ''}
+                        onChangeText={(text) => setFormData({ ...formData, customDegree: text })}
+                        placeholder="Enter custom degree"
+                        placeholderTextColor="#999"
+                        editable={!isLoading}
+                      />
+                    )}
+
+                    <View style={styles.modalButtons}>
+                      <TouchableOpacity style={styles.modalButton} onPress={handleCancel} disabled={isLoading}>
+                        <Text style={styles.modalButtonText}>Cancel</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.modalButton} onPress={handleConfirm} disabled={isLoading}>
+                        <Text style={styles.modalButtonText}>Confirm</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
+              </Modal>
+              <Text style={styles.selectedText}>
+                Selected: {formData.degree || 'None'}
+                {tempDegrees.includes('Others') && formData.customDegree ? ` (${formData.customDegree})` : ''}
+              </Text>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Specialization(s)*</Text>
+
+              <TouchableOpacity
+                style={[styles.input, styles.dropdownButton, errors.specialization && styles.inputError]}
+                onPress={() => !isLoading && setSpecializationModalVisible(true)}
+                disabled={isLoading}
+              >
+                <Text style={styles.dropdownText}>
+                  {formData.specialization || 'Select specialization'}
+                </Text>
+              </TouchableOpacity>
+
+              <Modal
+                visible={specializationModalVisible}
+                transparent={true}
+                animationType="slide"
+                onRequestClose={() => setSpecializationModalVisible(false)}
+              >
+                <View style={styles.modalContainer}>
+                  <View style={styles.modalContent}>
+                    <Text style={styles.modalTitle}>Select Specialization</Text>
+
+                    <View style={{ marginBottom: SPACING.sm }}>
+                      <TextInput
+                        placeholder="Search specializations..."
+                        placeholderTextColor="#999"
+                        value={specializationSearch}
+                        onChangeText={setSpecializationSearch}
+                        style={[styles.input, styles.searchInput]}
+                        editable={!isLoading}
+                      />
+                    </View>
+
+                    <ScrollView style={styles.listContainer} keyboardShouldPersistTaps="handled" bounces={false}>
+                      {filteredSpecializations.length === 0 ? (
+                        <Text style={{ textAlign: 'center', color: '#666', marginTop: verticalScale(SPACING.lg) }}>No specializations found.</Text>
+                      ) : (
+                        filteredSpecializations.map((spec, idx) => (
+                          <Pressable
+                            key={idx}
+                            style={styles.checkboxRow}
+                            onPress={() => {
+                              setFormData({ ...formData, specialization: spec });
+                              setErrors(prev => ({ ...prev, specialization: '' }));
+                              setSpecializationSearch('');
+                              setSpecializationModalVisible(false);
+                            }}
+                          >
+                            <Text style={styles.checkboxLabel}>{spec}</Text>
+                          </Pressable>
+                        ))
+                      )}
+                    </ScrollView>
+
+                    <View style={styles.modalButtons}>
+                      <TouchableOpacity style={styles.modalButton} onPress={() => { setSpecializationModalVisible(false); setSpecializationSearch(''); }} disabled={isLoading}>
+                        <Text style={styles.modalButtonText}>Cancel</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.modalButton} onPress={() => { setSpecializationModalVisible(false); }} disabled={isLoading}>
+                        <Text style={styles.modalButtonText}>Done</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
+              </Modal>
+
+              {errors.specialization ? (
+                <Text style={styles.errorText}>{errors.specialization}</Text>
+              ) : null}
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Years of Experience *</Text>
+              <TextInput
+                ref={r => (inputRefs.yearsExperience.current = r)}
+                style={[styles.input, styles.yearsInput, errors.yearsExperience && styles.inputError]}
+                value={formData?.yearsExperience}
+                  onFocus={() => onInputFocus('yearsExperience')}
+                onChangeText={(text) => {
+                  const filteredText = text.replace(/[^0-9]/g, '');
+                  setFormData({ ...formData, yearsExperience: filteredText });
+                  setErrors(prev => ({ ...prev, yearsExperience: '' }));
+                }}
+                keyboardType="numeric"
+                placeholder="e.g. 5"
+                placeholderTextColor="#999"
+                editable={!isLoading}
+                maxLength={2}
+              />
+              {errors.yearsExperience ? (
+                <Text style={styles.errorText}>{errors.yearsExperience}</Text>
+              ) : null}
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Bio/Profile Info</Text>
+              <TextInput
+                ref={r => (inputRefs.bio.current = r)}
+                style={[styles.input, styles.textArea]}
+                value={formData.bio}
+                onFocus={() => onInputFocus('bio')}
+                onChangeText={(text) => setFormData({ ...formData, bio: text })}
+                placeholder="Enter your professional bio"
+                placeholderTextColor="#999"
+                multiline
+                numberOfLines={4}
+                editable={!isLoading}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Degree Certificate(s) (Optional)</Text>
+              <TouchableOpacity
+                onPress={() => handleFileUpload('degrees')}
+                style={styles.uploadContainer}
+                disabled={isLoading}
+              >
+                <View style={styles.uploadField}>
+                  <UploadIcon size={ICON_SIZE.md} color="#00203F" style={styles.uploadIcon} />
+                  <Text style={styles.uploadText}>
+                    {uploadedFiles.degrees.name ? 'Uploaded Successfully' : 'Upload Degree Certificate(s)'}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+
+              {uploadedFiles?.degrees?.name ? (
+                <View style={styles.fileNameContainer}>
+                  <View style={styles.fileNameWrapper}>
+                    <Text style={styles.fileNameText} numberOfLines={1} ellipsizeMode="middle">
+                      {uploadedFiles.degrees.name}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => handleRemoveFile('degrees')}
+                    style={styles.removeButton}
+                  >
+                    <Text style={styles.removeText}>Remove</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : null}
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Specialization Certificate(s) (Optional)</Text>
+              <TouchableOpacity
+                onPress={() => handleFileUpload('certifications')}
+                style={styles.uploadContainer}
+                disabled={isLoading}
+              >
+                <View style={styles.uploadField}>
+                  <UploadIcon size={ICON_SIZE.md}  color="#00203F" style={styles.uploadIcon} />
+                  <Text style={styles.uploadText}>
+                    {uploadedFiles.certifications.name ? 'Uploaded Successfully' : 'Upload Certificate(s)'}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+
+              {uploadedFiles.certifications.name ? (
+                <View style={styles.fileNameContainer}>
+                  <View style={styles.fileNameWrapper}>
+                    <Text style={styles.fileNameText} numberOfLines={1} ellipsizeMode="middle">
+                      {uploadedFiles.certifications.name}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => handleRemoveFile('certifications')}
+                    style={styles.removeButton}
+                  >
+                    <Text style={styles.removeText}>Remove</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : null}
+            </View>
+          </View>
+        </ScrollView>
+        </View>
+
+        <View style={styles.nextButtonContainer}>
+          <TouchableOpacity
+            style={[styles.nextButton, isLoading && styles.disabledButton]}
+            onPress={handleNext}
+            disabled={isLoading}
+          >
+            <Text style={styles.nextText}>Next</Text>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+};
+
+const styles = StyleSheet.create({
+  safeContainer: {
+    flex: 1,
+    backgroundColor: '#DCFCE7',
+  },
+  keyboardAvoidingContainer: {
+    flex: 1,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#00203F',
+    paddingVertical: verticalScale(SPACING.lg),
+    paddingHorizontal: SAFE_AREA.safeHorizontal,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 5,
+  },
+  backButton: {
+    padding: SPACING.xs,
+  },
+  headerTitle: {
+    flex: 1,
+    fontSize: responsiveText(18),
+    fontWeight: '600',
+    color: '#fff',
+    textAlign: 'center',
+    marginRight: isTablet ? scale(40) : scale(24),
+  },
+  contentArea: {
+    flex: 1,
+  },
+  scrollContainer: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: verticalScale(40),
+  },
+  formContainer: {
+    flex: 1,
+    paddingHorizontal: SAFE_AREA.safeHorizontal,
+    paddingVertical: verticalScale(SPACING.lg),
+  },
+  inputGroup: {
+    marginBottom: verticalScale(SPACING.lg),
+  },
+  label: {
+    fontSize: responsiveText(14),
+    fontWeight: '500',
+    color: '#333',
+    marginBottom: verticalScale(SPACING.xs),
+  },
+  input: {
+    borderWidth: scale(1),
+    borderColor: '#E0E0E0',
+    borderRadius: LAYOUT.borderRadius.md,
+    paddingHorizontal: SPACING.md,
+    backgroundColor: '#fff',
+    fontSize: FONT_SIZE.input,
+    color: '#333',
+    ...LAYOUT.shadow.sm,
+  },
+  // Years input height specifically for iOS
+  yearsInput: {
+    height: Platform.OS === 'ios' ? LAYOUT.inputHeight : verticalScale(48),
+    minHeight: Platform.OS === 'ios' ? verticalScale(48) : LAYOUT.inputHeight,
+    paddingVertical: Platform.OS === 'ios' ? SPACING.md : SPACING.sm,
+  },
+  inputError: {
+    borderColor: '#D32F2F',
+  },
+  dropdownButton: {
+    padding: SPACING.sm,
+    justifyContent: 'center',
+    height: LAYOUT.inputHeight,
+  },
+  dropdownText: {
+    fontSize: FONT_SIZE.input,
+    color: '#333',
+  },
+  textInput: {
+    marginTop: SPACING.sm,
+    padding: SPACING.sm,
+    fontSize: FONT_SIZE.input,
+    height: LAYOUT.inputHeight,
+  },
+  textArea: {
+    height: verticalScale(100),
+    textAlignVertical: 'top',
+    paddingVertical: SPACING.md,
+  },
+  selectedText: {
+    marginTop: SPACING.xs,
+    fontSize: responsiveText(12),
+    color: '#555',
+  },
+  uploadContainer: {
+    borderWidth: scale(1),
+    borderColor: '#E0E0E0',
+    borderRadius: LAYOUT.borderRadius.md,
+    backgroundColor: '#fff',
+    height: verticalScale(60),
+    ...LAYOUT.shadow.sm,
+  },
+  uploadField: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: SPACING.md,
+    height: '100%',
+  },
+  uploadText: {
+    flex: 1,
+    fontSize: FONT_SIZE.input,
+    color: '#666',
+    marginHorizontal: SPACING.sm,
+  },
+  uploadIcon: {
+    marginHorizontal: SPACING.xs,
+  },
+  fileNameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: SPACING.sm,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    backgroundColor: '#F0F9FF',
+    borderRadius: LAYOUT.borderRadius.sm,
+    borderWidth: scale(1),
+    borderColor: '#E3F2FD',
+  },
+  fileNameWrapper: {
+    flex: 1,
+    marginRight: SPACING.sm,
+  },
+  fileNameText: {
+    fontSize: responsiveText(12),
+    color: '#00203F',
+  },
+  removeButton: {
+    paddingVertical: SPACING.xs,
+    paddingHorizontal: SPACING.md,
+    backgroundColor: '#FFEBEE',
+    borderRadius: LAYOUT.borderRadius.sm,
+    minWidth: scale(60),
+    alignItems: 'center',
+  },
+  removeText: {
+    color: '#D32F2F',
+    fontSize: responsiveText(12),
+    fontWeight: '500',
+  },
+  nextButtonContainer: {
+    paddingHorizontal: SAFE_AREA.safeHorizontal,
+    paddingBottom: SAFE_AREA.safeBottom + SPACING.md,
+    paddingTop: SPACING.sm,
+    backgroundColor: 'transparent',
+  },
+  nextButton: {
+    backgroundColor: '#00203F',
+    paddingVertical: verticalScale(SPACING.md),
+    borderRadius: LAYOUT.borderRadius.lg,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    ...(isAndroid && { elevation: 6 }),
+  },
+  disabledButton: {
+    backgroundColor: '#B0BEC5',
+  },
+  nextText: {
+    color: '#fff',
+    fontSize: responsiveText(16),
+    fontWeight: '600',
+  },
+  loaderOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  loaderText: {
+    color: '#fff',
+    fontSize: responsiveText(14),
+    marginTop: verticalScale(SPACING.md),
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: LAYOUT.borderRadius.lg,
+    padding: SPACING.lg,
+    width: isTablet ? scale(600) : scale(340),
+    maxHeight: '80%',
+    justifyContent: 'flex-start',
+  },
+  modalTitle: {
+    fontSize: responsiveText(16),
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: SPACING.sm,
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: verticalScale(SPACING.sm),
+  },
+  checkboxLabel: {
+    fontSize: FONT_SIZE.md,
+    color: '#333',
+    marginLeft: SPACING.sm,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: SPACING.lg,
+  },
+  modalButton: {
+    padding: SPACING.sm,
+    backgroundColor: '#00203F',
+    borderRadius: LAYOUT.borderRadius.md,
+    width: '48%',
+    alignItems: 'center',
+  },
+  modalButtonText: {
+    color: '#fff',
+    fontSize: FONT_SIZE.sm,
+    fontWeight: '600',
+  },
+  searchInput: {
+    height: LAYOUT.inputHeight,
+    fontSize: FONT_SIZE.input,
+  },
+  listContainer: {
+    maxHeight: verticalScale(300),
+    marginBottom: SPACING.sm,
+  },
+  errorText: {
+    color: '#D32F2F',
+    fontSize: responsiveText(12),
+    marginTop: verticalScale(SPACING.xs),
+    marginBottom: verticalScale(SPACING.xs),
+  },
+});
+
+export default SpecializationDetails;

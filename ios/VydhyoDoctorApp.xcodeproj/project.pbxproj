@@ -8,12 +8,12 @@
 
 /* Begin PBXBuildFile section */
 		00E356F31AD99517003FC87E /* VydhyoDoctorAppTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 00E356F21AD99517003FC87E /* VydhyoDoctorAppTests.m */; };
-		0C80B921A6F3F58F76C31292 /* libPods-VydhyoDoctorApp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5DCACB8F33CDC322A6C60F78 /* libPods-VydhyoDoctorApp.a */; };
+		06EE66C9D73DB6ED5F2BC693 /* libPods-VydhyoDoctorApp-VydhyoDoctorAppTests.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 1F17561E7620626958BE98ED /* libPods-VydhyoDoctorApp-VydhyoDoctorAppTests.a */; };
 		13B07FBC1A68108700A75B9A /* AppDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB01A68108700A75B9A /* AppDelegate.mm */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		13B07FC11A68108700A75B9A /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB71A68108700A75B9A /* main.m */; };
+		1C6FC020341B67526B0B877B /* libPods-VydhyoDoctorApp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 98ADEE1B66E8770E48A70DEF /* libPods-VydhyoDoctorApp.a */; };
 		4FB94DBDB3DBD90E8BC48C74 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 03FE884A7E6E276AED3D3EFC /* PrivacyInfo.xcprivacy */; };
-		7699B88040F8A987B510C191 /* libPods-VydhyoDoctorApp-VydhyoDoctorAppTests.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 19F6CBCC0A4E27FBF8BF4A61 /* libPods-VydhyoDoctorApp-VydhyoDoctorAppTests.a */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
 /* End PBXBuildFile section */
 
@@ -39,13 +39,13 @@
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = VydhyoDoctorApp/Info.plist; sourceTree = "<group>"; };
 		13B07FB71A68108700A75B9A /* main.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = main.m; path = VydhyoDoctorApp/main.m; sourceTree = "<group>"; };
 		13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = PrivacyInfo.xcprivacy; path = VydhyoDoctorApp/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
-		19F6CBCC0A4E27FBF8BF4A61 /* libPods-VydhyoDoctorApp-VydhyoDoctorAppTests.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-VydhyoDoctorApp-VydhyoDoctorAppTests.a"; sourceTree = BUILT_PRODUCTS_DIR; };
-		3B4392A12AC88292D35C810B /* Pods-VydhyoDoctorApp.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-VydhyoDoctorApp.debug.xcconfig"; path = "Target Support Files/Pods-VydhyoDoctorApp/Pods-VydhyoDoctorApp.debug.xcconfig"; sourceTree = "<group>"; };
-		5709B34CF0A7D63546082F79 /* Pods-VydhyoDoctorApp.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-VydhyoDoctorApp.release.xcconfig"; path = "Target Support Files/Pods-VydhyoDoctorApp/Pods-VydhyoDoctorApp.release.xcconfig"; sourceTree = "<group>"; };
-		5B7EB9410499542E8C5724F5 /* Pods-VydhyoDoctorApp-VydhyoDoctorAppTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-VydhyoDoctorApp-VydhyoDoctorAppTests.debug.xcconfig"; path = "Target Support Files/Pods-VydhyoDoctorApp-VydhyoDoctorAppTests/Pods-VydhyoDoctorApp-VydhyoDoctorAppTests.debug.xcconfig"; sourceTree = "<group>"; };
-		5DCACB8F33CDC322A6C60F78 /* libPods-VydhyoDoctorApp.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-VydhyoDoctorApp.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		1F17561E7620626958BE98ED /* libPods-VydhyoDoctorApp-VydhyoDoctorAppTests.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-VydhyoDoctorApp-VydhyoDoctorAppTests.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		21E538DDFBF554F608D4048E /* Pods-VydhyoDoctorApp-VydhyoDoctorAppTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-VydhyoDoctorApp-VydhyoDoctorAppTests.release.xcconfig"; path = "Target Support Files/Pods-VydhyoDoctorApp-VydhyoDoctorAppTests/Pods-VydhyoDoctorApp-VydhyoDoctorAppTests.release.xcconfig"; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = VydhyoDoctorApp/LaunchScreen.storyboard; sourceTree = "<group>"; };
-		89C6BE57DB24E9ADA2F236DE /* Pods-VydhyoDoctorApp-VydhyoDoctorAppTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-VydhyoDoctorApp-VydhyoDoctorAppTests.release.xcconfig"; path = "Target Support Files/Pods-VydhyoDoctorApp-VydhyoDoctorAppTests/Pods-VydhyoDoctorApp-VydhyoDoctorAppTests.release.xcconfig"; sourceTree = "<group>"; };
+		98ADEE1B66E8770E48A70DEF /* libPods-VydhyoDoctorApp.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-VydhyoDoctorApp.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		D289F7F68FBF7865F930517B /* Pods-VydhyoDoctorApp-VydhyoDoctorAppTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-VydhyoDoctorApp-VydhyoDoctorAppTests.debug.xcconfig"; path = "Target Support Files/Pods-VydhyoDoctorApp-VydhyoDoctorAppTests/Pods-VydhyoDoctorApp-VydhyoDoctorAppTests.debug.xcconfig"; sourceTree = "<group>"; };
+		E037917679C03E8FBB0AC5EA /* Pods-VydhyoDoctorApp.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-VydhyoDoctorApp.release.xcconfig"; path = "Target Support Files/Pods-VydhyoDoctorApp/Pods-VydhyoDoctorApp.release.xcconfig"; sourceTree = "<group>"; };
+		E7353C469439E1F8E8D885B3 /* Pods-VydhyoDoctorApp.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-VydhyoDoctorApp.debug.xcconfig"; path = "Target Support Files/Pods-VydhyoDoctorApp/Pods-VydhyoDoctorApp.debug.xcconfig"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
@@ -54,7 +54,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				7699B88040F8A987B510C191 /* libPods-VydhyoDoctorApp-VydhyoDoctorAppTests.a in Frameworks */,
+				06EE66C9D73DB6ED5F2BC693 /* libPods-VydhyoDoctorApp-VydhyoDoctorAppTests.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -62,7 +62,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0C80B921A6F3F58F76C31292 /* libPods-VydhyoDoctorApp.a in Frameworks */,
+				1C6FC020341B67526B0B877B /* libPods-VydhyoDoctorApp.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -105,8 +105,8 @@
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				5DCACB8F33CDC322A6C60F78 /* libPods-VydhyoDoctorApp.a */,
-				19F6CBCC0A4E27FBF8BF4A61 /* libPods-VydhyoDoctorApp-VydhyoDoctorAppTests.a */,
+				98ADEE1B66E8770E48A70DEF /* libPods-VydhyoDoctorApp.a */,
+				1F17561E7620626958BE98ED /* libPods-VydhyoDoctorApp-VydhyoDoctorAppTests.a */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -145,10 +145,10 @@
 		BBD78D7AC51CEA395F1C20DB /* Pods */ = {
 			isa = PBXGroup;
 			children = (
-				3B4392A12AC88292D35C810B /* Pods-VydhyoDoctorApp.debug.xcconfig */,
-				5709B34CF0A7D63546082F79 /* Pods-VydhyoDoctorApp.release.xcconfig */,
-				5B7EB9410499542E8C5724F5 /* Pods-VydhyoDoctorApp-VydhyoDoctorAppTests.debug.xcconfig */,
-				89C6BE57DB24E9ADA2F236DE /* Pods-VydhyoDoctorApp-VydhyoDoctorAppTests.release.xcconfig */,
+				E7353C469439E1F8E8D885B3 /* Pods-VydhyoDoctorApp.debug.xcconfig */,
+				E037917679C03E8FBB0AC5EA /* Pods-VydhyoDoctorApp.release.xcconfig */,
+				D289F7F68FBF7865F930517B /* Pods-VydhyoDoctorApp-VydhyoDoctorAppTests.debug.xcconfig */,
+				21E538DDFBF554F608D4048E /* Pods-VydhyoDoctorApp-VydhyoDoctorAppTests.release.xcconfig */,
 			);
 			path = Pods;
 			sourceTree = "<group>";
@@ -160,12 +160,12 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 00E357021AD99517003FC87E /* Build configuration list for PBXNativeTarget "VydhyoDoctorAppTests" */;
 			buildPhases = (
-				A55EABD7B0C7F3A422A6CC61 /* [CP] Check Pods Manifest.lock */,
+				359A41A83EAB4728DE1115B8 /* [CP] Check Pods Manifest.lock */,
 				00E356EA1AD99517003FC87E /* Sources */,
 				00E356EB1AD99517003FC87E /* Frameworks */,
 				00E356EC1AD99517003FC87E /* Resources */,
-				C59DA0FBD6956966B86A3779 /* [CP] Embed Pods Frameworks */,
-				F6A41C54EA430FDDC6A6ED99 /* [CP] Copy Pods Resources */,
+				EBFEB1C8AB4B3C627A760833 /* [CP] Embed Pods Frameworks */,
+				2F9B52AEDC438B0F6090C55F /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -181,13 +181,13 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "VydhyoDoctorApp" */;
 			buildPhases = (
-				C38B50BA6285516D6DCD4F65 /* [CP] Check Pods Manifest.lock */,
+				C1E7E3B471F6809E8BA387D1 /* [CP] Check Pods Manifest.lock */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
-				00EEFC60759A1932668264C0 /* [CP] Embed Pods Frameworks */,
-				E235C05ADACE081382539298 /* [CP] Copy Pods Resources */,
+				AC662F023138A26552280E88 /* [CP] Embed Pods Frameworks */,
+				AE57C3C13E532A71786C27F0 /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -271,24 +271,24 @@
 			shellPath = /bin/sh;
 			shellScript = "set -e\n\nWITH_ENVIRONMENT=\"$REACT_NATIVE_PATH/scripts/xcode/with-environment.sh\"\nREACT_NATIVE_XCODE=\"$REACT_NATIVE_PATH/scripts/react-native-xcode.sh\"\n\n/bin/sh -c \"$WITH_ENVIRONMENT $REACT_NATIVE_XCODE\"\n";
 		};
-		00EEFC60759A1932668264C0 /* [CP] Embed Pods Frameworks */ = {
+		2F9B52AEDC438B0F6090C55F /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			inputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-VydhyoDoctorApp/Pods-VydhyoDoctorApp-frameworks-${CONFIGURATION}-input-files.xcfilelist",
+				"${PODS_ROOT}/Target Support Files/Pods-VydhyoDoctorApp-VydhyoDoctorAppTests/Pods-VydhyoDoctorApp-VydhyoDoctorAppTests-resources-${CONFIGURATION}-input-files.xcfilelist",
 			);
-			name = "[CP] Embed Pods Frameworks";
+			name = "[CP] Copy Pods Resources";
 			outputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-VydhyoDoctorApp/Pods-VydhyoDoctorApp-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+				"${PODS_ROOT}/Target Support Files/Pods-VydhyoDoctorApp-VydhyoDoctorAppTests/Pods-VydhyoDoctorApp-VydhyoDoctorAppTests-resources-${CONFIGURATION}-output-files.xcfilelist",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-VydhyoDoctorApp/Pods-VydhyoDoctorApp-frameworks.sh\"\n";
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-VydhyoDoctorApp-VydhyoDoctorAppTests/Pods-VydhyoDoctorApp-VydhyoDoctorAppTests-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		A55EABD7B0C7F3A422A6CC61 /* [CP] Check Pods Manifest.lock */ = {
+		359A41A83EAB4728DE1115B8 /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -310,7 +310,41 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
-		C38B50BA6285516D6DCD4F65 /* [CP] Check Pods Manifest.lock */ = {
+		AC662F023138A26552280E88 /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-VydhyoDoctorApp/Pods-VydhyoDoctorApp-frameworks-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-VydhyoDoctorApp/Pods-VydhyoDoctorApp-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-VydhyoDoctorApp/Pods-VydhyoDoctorApp-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		AE57C3C13E532A71786C27F0 /* [CP] Copy Pods Resources */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-VydhyoDoctorApp/Pods-VydhyoDoctorApp-resources-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			name = "[CP] Copy Pods Resources";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-VydhyoDoctorApp/Pods-VydhyoDoctorApp-resources-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-VydhyoDoctorApp/Pods-VydhyoDoctorApp-resources.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		C1E7E3B471F6809E8BA387D1 /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -332,7 +366,7 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
-		C59DA0FBD6956966B86A3779 /* [CP] Embed Pods Frameworks */ = {
+		EBFEB1C8AB4B3C627A760833 /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -347,40 +381,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-VydhyoDoctorApp-VydhyoDoctorAppTests/Pods-VydhyoDoctorApp-VydhyoDoctorAppTests-frameworks.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
-		E235C05ADACE081382539298 /* [CP] Copy Pods Resources */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-VydhyoDoctorApp/Pods-VydhyoDoctorApp-resources-${CONFIGURATION}-input-files.xcfilelist",
-			);
-			name = "[CP] Copy Pods Resources";
-			outputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-VydhyoDoctorApp/Pods-VydhyoDoctorApp-resources-${CONFIGURATION}-output-files.xcfilelist",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-VydhyoDoctorApp/Pods-VydhyoDoctorApp-resources.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
-		F6A41C54EA430FDDC6A6ED99 /* [CP] Copy Pods Resources */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-VydhyoDoctorApp-VydhyoDoctorAppTests/Pods-VydhyoDoctorApp-VydhyoDoctorAppTests-resources-${CONFIGURATION}-input-files.xcfilelist",
-			);
-			name = "[CP] Copy Pods Resources";
-			outputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-VydhyoDoctorApp-VydhyoDoctorAppTests/Pods-VydhyoDoctorApp-VydhyoDoctorAppTests-resources-${CONFIGURATION}-output-files.xcfilelist",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-VydhyoDoctorApp-VydhyoDoctorAppTests/Pods-VydhyoDoctorApp-VydhyoDoctorAppTests-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
@@ -416,7 +416,7 @@
 /* Begin XCBuildConfiguration section */
 		00E356F61AD99517003FC87E /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 5B7EB9410499542E8C5724F5 /* Pods-VydhyoDoctorApp-VydhyoDoctorAppTests.debug.xcconfig */;
+			baseConfigurationReference = D289F7F68FBF7865F930517B /* Pods-VydhyoDoctorApp-VydhyoDoctorAppTests.debug.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -443,7 +443,7 @@
 		};
 		00E356F71AD99517003FC87E /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 89C6BE57DB24E9ADA2F236DE /* Pods-VydhyoDoctorApp-VydhyoDoctorAppTests.release.xcconfig */;
+			baseConfigurationReference = 21E538DDFBF554F608D4048E /* Pods-VydhyoDoctorApp-VydhyoDoctorAppTests.release.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				COPY_PHASE_STRIP = NO;
@@ -467,7 +467,7 @@
 		};
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 3B4392A12AC88292D35C810B /* Pods-VydhyoDoctorApp.debug.xcconfig */;
+			baseConfigurationReference = E7353C469439E1F8E8D885B3 /* Pods-VydhyoDoctorApp.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
@@ -494,7 +494,7 @@
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 5709B34CF0A7D63546082F79 /* Pods-VydhyoDoctorApp.release.xcconfig */;
+			baseConfigurationReference = E037917679C03E8FBB0AC5EA /* Pods-VydhyoDoctorApp.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
