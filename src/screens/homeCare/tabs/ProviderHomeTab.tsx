@@ -36,7 +36,6 @@ export default function ProviderHomeTab() {
   const rootNav = useNavigation<any>();
   const {
     isOnline,
-    setIsOnline,
     incomingCount,
     activeJob,
     openActiveVisit,

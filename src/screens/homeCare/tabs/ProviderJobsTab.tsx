@@ -18,8 +18,6 @@ export default function ProviderJobsTab() {
   const {
     jobs,
     refreshJobs,
-    isOnline,
-    setIsOnline,
     incomingCount,
     openActiveVisit,
     openPatientDetail,
@@ -78,7 +76,7 @@ export default function ProviderJobsTab() {
   useFocusEffect(
     useCallback(() => {
       loadApiJobs();
-    }, [isOnline, activeTab])
+    }, [activeTab])
   );
 
   const visibleJobs = useMemo(() => {
@@ -136,17 +134,10 @@ export default function ProviderJobsTab() {
     });
   };
 
-  const handleDutyToggle = (next: boolean) => {
-    if (next) {
-      setIsOnline(true);
-      loadApiJobs();
-      return;
-    }
-    setIsOnline(false);
-  };
+
 
   const renderJob = ({ item }: { item: Job }) => {
-    const canAccept = item.status === 'new' && isOnline;
+    const canAccept = item.status === 'new';
     const canContinue =
       item.status === 'accepted' || item.status === 'ongoing';
     const isRejectedItem = item.status === 'rejected' || item.status === 'cancelled';
